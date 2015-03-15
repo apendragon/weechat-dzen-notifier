@@ -40,7 +40,6 @@ sub is_my_message {
 sub is_private_message {
   my ($buffer, $tags) = @_;
   weechat::log_print("is_private_message") if _DEBUG();
-  return 0 if (!defined($tags) || !defined($buffer));
   weechat::buffer_get_string($buffer, 'localvar_type') eq 'private' && $tags =~ m/(?:^|,)notify_private(?:,|$)/;
 }
 
@@ -66,7 +65,6 @@ sub print_author_and_count_priv_msg {
   weechat::log_print("print_author_and_count_priv_msg") if _DEBUG();
   weechat::log_print("tags:$tags");
   weechat::log_print("buffer:$buffer");
-  return weechat::WEECHAT_RC_OK if (!defined($tags) || !defined($buffer));
   my $dispatch = {
     0 => sub { weechat::WEECHAT_RC_OK }, # return if message is filtered
     1 => sub {
