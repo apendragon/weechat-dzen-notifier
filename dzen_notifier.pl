@@ -13,7 +13,7 @@ use constant {
 };
 
 my %options = (
-  icon     => '^i(/home/tcazali/.dzen/icons/xbm8x8/cat.xbm)',
+  icon     => '', # example: '^i(/home/johndoe/.dzen/icons/xbm8x8/cat.xbm)',
   dzen_cmd => "dzen2 -ta l -h 18 -fn 'snap' -bg '#111111' -fg '#b3b3b3' -w 200 -x 1000",
 );
 
