@@ -3,13 +3,13 @@ use strict;
 use IO::Handle;
 use constant {
   _SCRIPT_NAME => 'dzen_notifier',
-  _VERSION     => '1.0',
+  _VERSION     => '0.1',
   _AUTHOR      => 'apendragon',
   _LICENSE     => 'artistic_2',
   _DESC        => 'weechat dzen notifier script',
   _SHUTDOWN_F  => 'shutdown',
   _CHARSET     => 'UTF-8',
-  _DEBUG       => 1,
+  _DEBUG       => 0,
 };
 
 my %options = (
@@ -29,7 +29,6 @@ weechat::hook_signal('buffer_switch', 'unnotify', '');
 
 sub get_msg_sender {
   my ($tags) = @_;
-  weechat::log_print("get_msg_sender") if _DEBUG();
   my $nick = '';
   $nick = $1 if (defined($tags) && $tags =~ m/(?:^|,)nick_([^,]*)(?:,|$)/);
   $nick;
@@ -37,7 +36,6 @@ sub get_msg_sender {
 
 sub is_my_message {
   my ($tags, $buffer) = @_;
-  weechat::log_print("is_my_message") if _DEBUG();
   my $my_nick = weechat::buffer_get_string($buffer, 'localvar_nick');
   my $nick = get_msg_sender();
   $nick eq $my_nick;
@@ -45,13 +43,11 @@ sub is_my_message {
 
 sub is_private_message {
   my ($buffer, $tags) = @_;
-  weechat::log_print("is_private_message") if _DEBUG();
   weechat::buffer_get_string($buffer, 'localvar_type') eq 'private' && $tags =~ m/(?:^|,)notify_private(?:,|$)/;
 }
 
 sub notify {
   my ($sender) = @_;
-  weechat::log_print("notify") if _DEBUG();
   my $count = scalar keys %buffered_pv_msg;
   $count ? print $io_fh "$options{icon} [$count] $sender ($buffered_pv_msg{$sender})\n" : print $io_fh "\n";
   weechat::WEECHAT_RC_OK;
@@ -59,7 +55,6 @@ sub notify {
 
 sub notify_on_private {
   my ($buffer, $tags) = @_;
-  weechat::log_print("notify_on_private") if _DEBUG();
   if (is_private_message($buffer, $tags)) {
     my $sender = get_msg_sender($tags);
     rm_from_stack($sender);
@@ -73,7 +68,6 @@ sub notify_on_private {
 
 sub print_author_and_count_priv_msg {
   my ($data, $buffer, $date, $tags, $displayed, $highlight, $prefix, $message) = @_;
-  weechat::log_print("print_author_and_count_priv_msg") if _DEBUG();
   my $dispatch = {
     0 => sub { weechat::WEECHAT_RC_OK }, # return if message is filtered
     1 => sub {
@@ -85,7 +79,6 @@ sub print_author_and_count_priv_msg {
 
 sub unnotify {
   my ($signal, $type_data, $signal_data) = @_;
-  weechat::log_print("unnotify") if _DEBUG();
   my $type=weechat::buffer_get_string($signal_data, 'localvar_type');
   my $channel=weechat::buffer_get_string($signal_data, 'localvar_channel');
   my $dispatch = {
@@ -111,6 +104,6 @@ sub rm_sender_notif {
 }
 
 sub shutdown {
-  weechat::log_print("shutdown") if _DEBUG();
+  #weechat::log_print("shutdown") if _DEBUG();
   close $io_fh;
 }
