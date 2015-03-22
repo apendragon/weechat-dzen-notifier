@@ -39,7 +39,7 @@ sub get_msg_sender {
 sub is_my_message {
   my ($tags, $buffer) = @_;
   my $my_nick = weechat::buffer_get_string($buffer, 'localvar_nick');
-  my $nick = get_msg_sender();
+  my $nick = get_msg_sender($tags);
   $nick eq $my_nick;
 }
 
