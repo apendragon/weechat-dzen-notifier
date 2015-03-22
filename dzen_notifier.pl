@@ -2,14 +2,16 @@
 use strict;
 use IO::Handle;
 use constant {
-  _SCRIPT_NAME => 'dzen_notifier',
-  _VERSION     => '0.1',
-  _AUTHOR      => 'apendragon',
-  _LICENSE     => 'artistic_2',
-  _DESC        => 'weechat dzen notifier script',
-  _SHUTDOWN_F  => 'shutdown',
-  _CHARSET     => 'UTF-8',
-  _DEBUG       => 0,
+  _SCRIPT_NAME    => 'dzen_notifier',
+  _VERSION        => '0.1',
+  _AUTHOR         => 'apendragon',
+  _LICENSE        => 'artistic_2',
+  _DESC           => 'weechat dzen notifier script',
+  _SHUTDOWN_F     => 'shutdown',
+  _CHARSET        => 'UTF-8',
+  _BITLBEE_CHAN   => '&bitlbee',
+  _UNKNOWN_SENDER => 'stranger',
+  _DEBUG          => 1,
 };
 
 my %options = (
@@ -25,7 +27,7 @@ my %buffered_pv_msg = ();
 my @stacked_notif = ();
 
 weechat::hook_print('', '', '', 1, 'print_author_and_count_priv_msg', '');
-weechat::hook_signal('buffer_switch', 'unnotify', '');
+weechat::hook_signal('buffer_switch', 'unnotify_on_private', '');
 
 sub get_msg_sender {
   my ($tags) = @_;
@@ -43,7 +45,15 @@ sub is_my_message {
 
 sub is_private_message {
   my ($buffer, $tags) = @_;
-  weechat::buffer_get_string($buffer, 'localvar_type') eq 'private' && $tags =~ m/(?:^|,)notify_private(?:,|$)/;
+  my $private_buff = weechat::buffer_get_string($buffer, 'localvar_type') eq 'private';
+  $private_buff && $tags =~ m/(?:^|,)notify_private(?:,|$)/;
+}
+
+sub is_sip_private_message {
+  my ($buffer, $tags, $highlight, $message) = @_;
+  my $bitlbee_buff = weechat::buffer_get_string($buffer, 'localvar_channel') eq _BITLBEE_CHAN();
+  my $my_nick = weechat::buffer_get_string($buffer, 'localvar_nick');
+  $highlight && $bitlbee_buff && $message =~ m/^$my_nick:/;
 }
 
 sub notify {
@@ -54,9 +64,10 @@ sub notify {
 }
 
 sub notify_on_private {
-  my ($buffer, $tags) = @_;
-  if (is_private_message($buffer, $tags)) {
-    my $sender = get_msg_sender($tags);
+  my ($buffer, $tags, $highlight, $message) = @_;
+  my $is_sip_pv_msg = is_sip_private_message($buffer, $tags, $highlight, $message);
+  if ($is_sip_pv_msg || is_private_message($buffer, $tags)) {
+    my $sender = $is_sip_pv_msg ? _UNKNOWN_SENDER() : get_msg_sender($tags);
     rm_from_stack($sender);
     push(@stacked_notif, $sender);
     $buffered_pv_msg{$sender}++;
@@ -71,21 +82,33 @@ sub print_author_and_count_priv_msg {
   my $dispatch = {
     0 => sub { weechat::WEECHAT_RC_OK }, # return if message is filtered
     1 => sub {
-      is_my_message($tags, $buffer) ? weechat::WEECHAT_RC_OK : notify_on_private($buffer, $tags);
+      is_my_message($tags, $buffer) 
+        ? weechat::WEECHAT_RC_OK 
+        : notify_on_private($buffer, $tags, $highlight, $message);
     },
   };
   $dispatch->{$displayed}->();
 }
 
 sub unnotify {
+  my ($sender) = @_;
+  rm_sender_notif($sender);
+  scalar(@stacked_notif) ? notify($stacked_notif[-1]) : notify();
+}
+
+sub unnotify_on_private {
   my ($signal, $type_data, $signal_data) = @_;
   my $type=weechat::buffer_get_string($signal_data, 'localvar_type');
   my $channel=weechat::buffer_get_string($signal_data, 'localvar_channel');
   my $dispatch = {
-    'private' => sub {
-       rm_sender_notif($channel);
-       scalar(@stacked_notif) ? notify($stacked_notif[-1]) : notify();
-     },
+    'private'  => sub {
+       unnotify($channel);
+    },
+    'channel' => sub {
+      $channel eq _BITLBEE_CHAN() && $buffered_pv_msg{_UNKNOWN_SENDER()} 
+        ? unnotify(_UNKNOWN_SENDER())
+        : weechat::WEECHAT_RC_OK;
+    },
   };
   ($dispatch->{$type} || sub { weechat::WEECHAT_RC_OK })->();
 }
