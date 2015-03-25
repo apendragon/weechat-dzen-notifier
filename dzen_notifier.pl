@@ -49,7 +49,7 @@ sub is_private_message {
   $private_buff && $tags =~ m/(?:^|,)notify_private(?:,|$)/;
 }
 
-sub is_sip_private_message {
+sub is_bitlbee_private_message {
   my ($buffer, $tags, $highlight, $message) = @_;
   my $bitlbee_buff = weechat::buffer_get_string($buffer, 'localvar_channel') eq _BITLBEE_CHAN();
   my $my_nick = weechat::buffer_get_string($buffer, 'localvar_nick');
@@ -65,9 +65,9 @@ sub notify {
 
 sub notify_on_private {
   my ($buffer, $tags, $highlight, $message) = @_;
-  my $is_sip_pv_msg = is_sip_private_message($buffer, $tags, $highlight, $message);
-  if ($is_sip_pv_msg || is_private_message($buffer, $tags)) {
-    my $sender = $is_sip_pv_msg ? _UNKNOWN_SENDER() : get_msg_sender($tags);
+  my $is_bitlbee_pv_msg = is_bitlbee_private_message($buffer, $tags, $highlight, $message);
+  if ($is_bitlbee_pv_msg || is_private_message($buffer, $tags)) {
+    my $sender = $is_bitlbee_pv_msg ? _UNKNOWN_SENDER() : get_msg_sender($tags);
     rm_from_stack($sender);
     push(@stacked_notif, $sender);
     $buffered_pv_msg{$sender}++;
