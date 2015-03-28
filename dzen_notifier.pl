@@ -3,7 +3,7 @@ use strict;
 use IO::Handle;
 use constant {
   _SCRIPT_NAME    => 'dzen_notifier',
-  _VERSION        => '0.1',
+  _VERSION        => '0.2',
   _AUTHOR         => 'apendragon',
   _LICENSE        => 'artistic_2',
   _DESC           => 'weechat dzen notifier script',
@@ -20,6 +20,88 @@ my %options = (
 );
 
 weechat::register(_SCRIPT_NAME(), _AUTHOR(), _VERSION(), _LICENSE(), _DESC(), _SHUTDOWN_F(), _CHARSET());
+
+=head1 NAME
+
+dzen_notifier.pl
+
+=head1 SYNOPSIS
+
+dzen_notifier.pl
+
+does not take any args.
+
+Just put it in ~/.weechat/perl/autoload dir or load it manually with /script
+
+=head1 DESCRIPTION
+
+dzen_notifier.pl perl script will notify dzen when you receive a private message in weechat.
+
+The form of notification is C<${icon} [${nb_pv_sender}] ${last_sender} (${nb_msg_of_last_sender})>
+
+where 
+
+=over 4
+
+=item * C<${icon}> is a parameterized icon or nothing by default I<(see icon option)>
+
+=item * C<${nb_pv_sender}> is number of unread buffers of private messages
+
+=item * C<${last_sender}> the nick of the last sender who wrote you a private message you did not read or C<stranger>
+        if the last sender is not in your bitlbee buddy list I<(see L</Bitlbee> for more details)>.
+
+=item * C<${nb_msg_of_last_sender}> is number of unread messages in your last sender buffer
+
+=back
+
+See L</EXAMPLE>.
+
+=head2 Set private message as read
+
+If you switch to private message buffer that has been notified, it will automatically be removed from stack of private messages notified.
+Then C<${nb_pv_sender}> will be decreased, C<${last_sender}> will switch to preceding last sender who wrote you a private message
+you did not read (or nothing if there is not), and C<${nb_msg_of_last_sender}> will begin the number of unread messages of this 
+preceding sender (or nothing if there is not).
+
+=head2 Bitlbee
+
+If you use L<bitlbee|http://www.bitlbee.org>, you know that if you receive private message of somebody who is not in your buddy list, it will 
+appear in C<&bitlbee> buffer. dzen_notifier.pl handles this case and will notify dzen with C<stranger> private message notification.
+C<stranger> nickname is used because more than one unknow body may send you private message at the same time in this buffer. All these
+private message notifications will be removed from private messages stack when you will swich to C<&bitlbee> buffer.
+
+=head2 OPTIONS
+
+Options can directly be set in C<%options> hash.
+
+=over 4
+
+=item * C<dzen_cmd> is the dzen command where dzen_notifier.pl will pipe output notifications.
+
+By default it is 
+        
+        C<dzen2 -ta l -h 18 -fn 'snap' -bg '#111111' -fg '#b3b3b3' -w 200 -x 1000>.
+
+Of course you have to customize it with your own dzen settings, like x position, font, width, etc.
+
+=item * C<icon> is the icon path you want to use front of your notification. 
+
+By example 
+        
+        C<^i(/home/johndoe/.dzen/icons/xbm8x8/cat.xbm)>
+
+=back
+
+=head1 EXAMPLE
+
+if dzen notification looks like 
+
+C<[4] johndoe (2)>
+
+it means you have C<4> private message buffers you have not already read, the last private message you received is in C<johndoe> buffer,
+and he wrote C<2> unread messages in this buffer.
+
+=cut
 
 open my ($io_fh), "|$options{dzen_cmd}";
 $io_fh->autoflush(1);
@@ -66,15 +148,14 @@ sub notify {
 sub notify_on_private {
   my ($buffer, $tags, $highlight, $message) = @_;
   my $is_bitlbee_pv_msg = is_bitlbee_private_message($buffer, $tags, $highlight, $message);
-  if ($is_bitlbee_pv_msg || is_private_message($buffer, $tags)) {
+  my $closure = sub {
     my $sender = $is_bitlbee_pv_msg ? _UNKNOWN_SENDER() : get_msg_sender($tags);
     rm_from_stack($sender);
     push(@stacked_notif, $sender);
     $buffered_pv_msg{$sender}++;
     notify $sender;
-  } else {
-    weechat::WEECHAT_RC_OK;
-  }
+  };
+  ($is_bitlbee_pv_msg || is_private_message($buffer, $tags)) ? $closure->() : weechat::WEECHAT_RC_OK;
 }
 
 sub print_author_and_count_priv_msg {
