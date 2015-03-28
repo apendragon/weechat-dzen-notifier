@@ -80,7 +80,7 @@ Options can directly be set in C<%options> hash.
 
 By default it is 
         
-        C<dzen2 -ta l -h 18 -fn 'snap' -bg '#111111' -fg '#b3b3b3' -w 200 -x 1000>.
+        dzen2 -ta l -h 18 -fn 'snap' -bg '#111111' -fg '#b3b3b3' -w 200 -x 1000.
 
 Of course you have to customize it with your own dzen settings, like x position, font, width, etc.
 
@@ -88,7 +88,7 @@ Of course you have to customize it with your own dzen settings, like x position,
 
 By example 
         
-        C<^i(/home/johndoe/.dzen/icons/xbm8x8/cat.xbm)>
+        ^i(/home/johndoe/.dzen/icons/xbm8x8/cat.xbm)
 
 =back
 
