@@ -11,7 +11,7 @@ use constant {
   _CHARSET        => 'UTF-8',
   _BITLBEE_CHAN   => '&bitlbee',
   _UNKNOWN_SENDER => 'stranger',
-  _DEBUG          => 1,
+  _DEBUG          => 0,
 };
 
 my %options = (
