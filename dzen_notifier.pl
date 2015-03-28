@@ -1,4 +1,3 @@
-#!/usr/bin/perl
 use strict;
 use IO::Handle;
 use constant {
