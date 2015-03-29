@@ -10,12 +10,14 @@ use constant {
   _CHARSET        => 'UTF-8',
   _BITLBEE_CHAN   => '&bitlbee',
   _UNKNOWN_SENDER => 'stranger',
-  _DEBUG          => 0,
+  _USELESS        => '',
+  _DEBUG          => 1,
 };
 
 my %options = (
   icon     => '', # example: '^i(/home/johndoe/.dzen/icons/xbm8x8/cat.xbm)',
   dzen_cmd => "dzen2 -ta l -h 18 -fn 'snap' -bg '#111111' -fg '#b3b3b3' -w 200 -x 1000",
+  unnotif_cmd => 'unnotify',
 );
 
 weechat::register(_SCRIPT_NAME(), _AUTHOR(), _VERSION(), _LICENSE(), _DESC(), _SHUTDOWN_F(), _CHARSET());
@@ -175,6 +177,18 @@ my @stacked_notif = ();
 
 weechat::hook_print('', '', '', 1, 'print_author_and_count_priv_msg', '');
 weechat::hook_signal('buffer_switch', 'unnotify_on_private', '');
+weechat::hook_command($options{unnotif_cmd}, 
+  'unnotify dzen private message notifications', #desc
+  'none | name | all',#help
+  "Examples :\n\n" .
+  "to unnotify messages from current buffer :\n" .
+  "/unnotify\n\n" .
+  "to unnotify messages from johndoe :\n" .
+  "/unnotify johndoe\n\n" .
+  "to unnotify all messages :\n" .
+  "/unnotify all", #args desc
+  'all || %(buffers_names)',
+  'handmade_unnotify', '');
 
 sub get_msg_sender {
   my ($tags) = @_;
@@ -270,6 +284,14 @@ sub rm_sender_notif {
   my ($sender) = @_;
   delete($buffered_pv_msg{$sender});
   rm_from_stack($sender);
+}
+
+sub handmade_unnotify {
+  my ($data, $buffer, $argc, $argv, $argv_eol) = @_;
+  my $unnotify_all = sub { foreach (keys(%buffered_pv_msg)) { unnotify($_); } };
+  $argc 
+    ? ($argc =~ m/^\s*all\s*$/ ? $unnotify_all->() : unnotify($argc))
+    : unnotify_on_private('', '', $buffer);
 }
 
 sub shutdown {
